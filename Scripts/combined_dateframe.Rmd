@@ -1,0 +1,104 @@
+---
+title: "combined_dateframe"
+output: html_notebook
+---
+
+Take 'all' htseq-count results and melt them in to one big dataframe from the final_project directory created using the file_organization script
+
+```{r}
+basedir <- "./Users/CrystalRubalcava/Desktop/final_project/3ca93211-9c13-495a-abce-61138bfee0c3"
+
+cntdir <- paste(basedir, "htseq_counts", sep="/")
+pat <- "_all_counts.txt"
+tophat.all <- list.files(path = cntdir,
+	pattern = pat,
+	all.files = TRUE,
+	recursive = FALSE,
+	ignore.case = FALSE,
+	include.dirs = FALSE)
+ 
+# we choose the 'all' series
+myfiles <- tophat.all
+DT <- list()
+ 
+# read each file as array element of DT and rename the last 2 cols
+# we created a list of single sample tables
+for (i in 1:length(myfiles) ) {
+file = paste(cntdir, myfiles[i], sep = "/")
+DT[[myfiles[i]]] <- read.table(file, header = F, stringsAsFactors = FALSE)
+counts <- gsub("(.*)_all_counts.txt", "\\1", myfiles[i])
+colnames(DT[[myfiles[i]]]) <- c("ID", counts)
+}
+```
+
+```{r}
+# merge all elements based on first ID columns
+data <- DT[[myfiles[1]]]
+```
+
+```{r}
+# inspect
+head(data)
+```
+```{r}
+# we now add each other table with the ID column as key
+for (i in 1:length(myfiles)) {
+	y <- DT[[myfiles[i]]]
+	z <- merge(data, y, by = c("ID"))
+	data <- z
+}
+```
+
+```{r}
+# ID column becomes rownames
+rownames(data) <- data$ID
+data <- data[,-1]
+```
+ 
+```{r}
+## add total counts per sample
+data <- rbind(data, tot.counts=colSums(data))
+```
+```{r}
+# inspect and look at the top rows
+head(data)
+```
+
+```{r}
+# inspect and look at the bottom rows
+
+tail(data)
+```
+
+```{r}
+# take summary rows to a new table
+# ( not starting with ENS with invert=TRUE )
+data.all.summary <- data[grep("^ENS", rownames(data), perl=TRUE, invert=TRUE), ]
+data.all.summary # to see table below
+```
+
+```{r}
+# transpose table for readability
+t(data.all.summary)
+```
+
+```{r} 
+# write summary to file
+write.csv(data.all.summary, file = "chr22-htseq_counts_all-summary.csv")
+```
+
+```{r}
+# take all data rows to a new table
+ 
+data.all <- data[grep("^ENS", rownames(data), perl=TRUE, invert=FALSE), ]
+head(data.all, 3) # preview merged table
+```
+
+```{r}
+# write data to file
+write.csv(data.all, file = "final_htseq_counts_all.csv")
+ 
+# cleanup intermediate objects
+rm(y, z, i, DT)
+```
+

@@ -1,0 +1,29 @@
+---
+title: "file_organization"
+output: html_notebook
+---
+
+```{r}
+#The compressed packages of files from ascending colon origin site and sigmoid colon origin site are places respectively in Ascending and Sigmoid directories in the final_project directory. This was done to organize and sort files according to compare groups.
+dir.create("Ascending")
+filepath <- dir(path ="./Users/CrystalRubalcava/Desktop/final_project/ascending",full.names = TRUE)
+for(wd in filepath){
+  files <-dir(path = wd,pattern="count.gz$") #View the files that meet the criteria
+  fromfilepath <- paste(wd,"/",files,sep ="")
+  tofilepath <- paste("./Ascending/",files,sep ="")
+  file.copy(fromfilepath,tofilepath)
+}
+```
+
+```{r}
+directory <- "Users/CrystalRubalcava/Desktop/final_project'/ascending/gdc_manifest.202sigmoid.txt"
+dir.create("Sigmoid")
+filepath <- dir(path ="./Users/CrystalRubalcava/Desktop/final_project/sigmoid",full.names = TRUE)
+for(wd in filepath){
+  files <-dir(path = wd,pattern="count.gz$") #View the files that meet the criteria
+  fromfilepath <- paste(wd,"/",files,sep ="")
+  tofilepath <- paste("./Sigmoid/",files,sep ="")
+  file.copy(fromfilepath,tofilepath)
+}
+```
+

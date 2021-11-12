@@ -1,0 +1,40 @@
+---
+title: "DESeq2_draft"
+output: html_notebook
+---
+# RNA-Seq gene profiling using HTSeq-count files from Stage II colon cancer patients
+DESeqDataSet used to generate counts from htseq-counts
+Side note: HTSeq is a python framework that is used to work with sequencing data and mapping information
+
+DESeqDataSet used to generate counts from htseq-counts
+Generate count tables from RNA read mapping and record gene expression from genomes and metagenomes.
+
+We will be counting the reads and estimating expression genes or genomic regions
+
+# 1. First you will want to specify a variable which points to the directory in which the htseq-count output files are located.
+# 2. We specify which files to read in using list.files, and select those files which contain the string "htseq" using grep. The sub function is used to chop up the sample filename to obtain the condition status, or you might alternatively read in a phenotypic table using read.table.
+```{r}
+directory <-('/Users/CrystalRubalcava/Desktop/final_project/')
+final_project <- grep("tumor_origin_site",list.files(directory),value=TRUE)
+sampleCondition <- sub("(.*tumor_origin_site).*","\\1",final_project)
+sampleTable <- data.frame(sampleName = final_project,
+                          fileName = final_project,
+                          condition = sampleCondition)
+sampleTable$condition <- factor(sampleTable$condition)
+```
+
+# 3. Install 'SummarizedExperiment' package that contains DESeq2
+```{r}
+##if (!requireNamespace("BiocManager", quietly = TRUE))
+    ##install.packages("BiocManager")
+
+##BiocManager::install("rnaseqGene")
+library("DESeq2")
+ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                       directory = directory,
+                                       design= ~ condition)
+ddsHTSeq
+dds <- DESeq(ddsHTSeq)
+resultsNames(dds) # lists the coefficients
+```
+
