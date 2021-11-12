@@ -10,9 +10,9 @@ gdc-client download -m  ~/final_project/gdc_manifest.specificfilenamehere.txt
 
 * Use R studio to organize files into sigmoid and ascending colon cancer files (see in scripts)
 
-![Example of Final Project Folder](Desktop/pic.png?raw=true)
+![Example of Final Project Folder](/Screenshots/pic.png?raw=true)
 
-![Example of Progress in DESeq2 Vignette](Desktop/pic2.png?raw=true)
+![Example of Progress in DESeq2 Vignette](/Screenshots/pic2.png?raw=true)
 
 
 ## Section 2: Next Steps
