@@ -1,0 +1,206 @@
+---
+title: "DESeq2Update"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+# Recap: Organized htseq.counts files into ascending and sigmoid groups by renaming the files. 
+
+
+# Final Updates: Analyzing RNA-seq data with `DESeq2` based on the Tutorial
+# RNA-Seq gene profiling using HTSeq-count files from Stage II colon cancer patients
+DESeqDataSet used to generate counts from htseq-counts
+Side note: HTSeq is a python framework that is used to work with sequencing data and mapping information
+
+DESeqDataSet used to generate counts from htseq-counts
+Generate count tables from RNA read mapping and record gene expression from genomes and metagenomes.
+
+We will be counting the reads and estimating expression genes or genomic regions.
+
+We will be comparing gene expression between sigmoid and ascending tumor origin sites. 
+# Using DESeq2, we will normalize for:
+#1) library size - meaning the number of reads that we have obtained - in our case we have a total of 85 ht-seq counts reads and 
+#2) RNA composition effect - meaning that we are comparing the gene expression across different cell samples.
+
+Installation of required packages
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("rnaseqGene")
+
+library(DESeq2)
+
+```
+
+
+
+Installation of required libraries
+```{r}
+library(DESeq2)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+```
+
+Set working directory in each of the chunks to ensure all necessary files are in directory.
+Prep count tables by finding all counts
+```{r}
+setwd ("~/Desktop/final_project/allfiles/")
+
+countdata <- read.csv("htseq_all_sample_count.csv", header=TRUE, row.names=1)
+```
+
+```{r}
+setwd ("~/Desktop/final_project/allfiles/")
+# Convert count data to a matrix
+countdata <- as.matrix(countdata)
+head(countdata)
+```
+
+
+
+#Start DESeq2 analysis
+
+# Load the data from htseq counts - sigmoid
+```{r}
+setwd ("~/Desktop/final_project/allfiles/")
+sigmoidFiles <- grep("sigmoid",list.files(directory),value=TRUE)
+sigmoidCondition <- sub("(.*sigmoid).*","\\1",sigmoidFiles)
+sigmoidTable <- data.frame(
+fileName = sigmoidFiles,
+condition = sigmoidCondition)
+sigmoidTable$condition <- factor(sigmoidTable$condition)
+```
+
+# Load the data from htseq counts - ascending
+```{r}
+setwd ("~/Desktop/final_project/allfiles/")
+ascendingFiles <- grep("ascending",list.files(directory),value=TRUE)
+ascendingCondition <- sub("(.*ascending).*","\\1",ascendingFiles)
+ascendingTable <- data.frame(
+fileName = ascendingFiles,
+condition = ascendingCondition)
+ascendingTable$condition <- factor(ascendingTable$condition)
+```
+
+# Load all data files from htseq counts - ascending and sigmoid
+Here ascending will group all counts from patients with tumor origin sites in the ascending colon. All patients with tumor origin sites in the sigmoid colon will be grouped in sigmoid. 
+```{r}
+sampleFiles <- grep("counts.txt",list.files(directory),value=TRUE)
+#set your condtions for the files in SampleFiles
+sampleCondition = c("sigmoid","sigmoid","ascending","sigmoid","ascending","ascending","ascending","ascending","ascending","sigmoid","ascending","sigmoid","sigmoid","ascending","sigmoid","ascending","ascending","ascending","sigmoid","sigmoid","ascending","sigmoid","ascending","sigmoid","ascending","sigmoid","sigmoid","sigmoid","sigmoid","sigmoid","ascending","sigmoid","sigmoid","sigmoid","sigmoid","sigmoid","ascending","ascending","sigmoid","sigmoid","ascending","sigmoid","sigmoid","sigmoid","sigmoid","ascending","ascending","sigmoid","ascending","sigmoid","ascending","ascending","ascending","ascending","ascending","sigmoid","ascending","ascending","sigmoid","ascending","ascending","ascending","ascending","sigmoid","sigmoid","sigmoid","ascending","ascending","ascending","ascending","ascending","sigmoid","ascending","sigmoid","ascending","ascending","ascending","ascending","ascending","ascending","sigmoid","ascending","sigmoid","ascending","ascending")
+sampleTable <- data.frame(sampleName = sampleFiles,
+condition =sampleCondition)
+sampleTable$condition <- factor(sampleTable$condition)
+```
+
+Create coldata from countdata file
+```{r}
+library(DESeq2)
+# Create a coldata frame and instantiate the DESeqDataSet.
+#(coldata <- data.frame(row.names=colnames(countdata)))
+```
+
+```{r}
+directory <- "/Users/crystalrubalcava/Desktop/final_project/allfiles/"
+library(DESeq2)
+
+ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                       directory = directory,
+                                       design= ~ condition)
+ddsHTSeq
+
+colData(ddsHTSeq)$condition<-factor(colData(ddsHTSeq)$condition, levels=c("ascending","sigmoid"))
+```
+#check for error message 
+#Error in file(file, "rt") : cannot open the connection
+
+#Check for error message
+#Error message: Error in file(file, "rt") : cannot open the connection
+#In addition: Warning message:
+#In file(file, "rt") :cannot open file '/Users/crystalrubalcava/Desktop/final_project/allfiles//020aa019-a3a4-4055-92ee-be824a597501sigmoid.htseq.counts': No such file or directory
+
+#This file is coming up as false
+```
+setwd('/Users/crystalrubalcava/Desktop/final_project/allfiles')
+file.exists('/Users/crystalrubalcava/Desktop/final_project/allfiles/020aa019-a3a4-4055-92ee-be824a597501sigmoid.htseq.counts') #
+solution is to include ```counts.txt``` in script chunk above. 
+```
+
+#Error in DESeqDataSet(se, design = design, ignoreRank) : all variables in design formula must be columns in colData
+#> ddsHTSeq
+#Error: object 'ddsHTSeq' not found
+
+#Create 2 datasets for results of different tumor site origins to conduct differential expression using DESeq2
+
+```{r}
+library('DESeq2')
+
+  ddsHTSeq <- DESeqDataSetFromHTSeqCount(design = ~ condition)
+  ddsHTSeq <- DESeqDataSetFromHTSeqCount(ddsHTSeq, betaPrior=FALSE)
+  res <- results(dds,
+    contrast = c('sigmoid','ascending'))
+  res <- lfcShrink(dds,
+    contrast = c('sigmoid','ascending'), res=res, type = 'normal')
+```
+
+# Prefilter the low count genes to avoid having any reads with less than 10 counts
+```{r}
+keep <- rowSums(counts(ddsHTSeq)) >= 10
+ddsHTSeq <- ddsHTSeq[keep,]
+```
+
+# Differential Expression Analysis
+```{r}
+ddsHTSeq$condition <- factor(ddsHTSeq$condition, levels = c("ascending","sigmoid"))
+ddsHTSeq <- DESeq(ddsHTSeq)
+res <- results(ddsHTSeq)
+res
+```
+
+# Build a results table that we will use for plotting graphs later in the vignette
+```{r}
+res <- results(ddsHTSeq, name="sigmoid_ascending_tumor_origin_sites")
+res <- results(ddsHTSeq, contrast=c("sigmoid","ascending"))
+```
+
+# Order the results table by p-values (smallets to largest). p-values can be used to analyse the differential gene expression. 
+```{r}
+resOrdered <- res[order(res$pvalue),]
+summary(res)
+```
+
+# Use different plots to continue data analysis
+
+```{r} 
+#plotcounts that can be used for examining the counts of reads for a single gene across the groups. - graph below will highligh smallest pvalue seen from results table
+d <- plotCounts(ddsHTSeq, gene=which.min(res$padj), intgroup="condition", 
+                returnData=TRUE)
+library("ggplot2")
+ggplot(d, aes(x=condition, y=count)) + 
+  geom_point(position=position_jitter(w=0.1,h=0)) + 
+  scale_y_log10(breaks=c(25,100,400))
+```
+
+```{r}
+#volcano plot can show dramatic statistical distributions in differential gene analysis and may be helpful
+# Install package 
+#BiocManager::install('EnhancedVolcano')
+#library(EnhancedVolcano)
+#EnhancedVolcano(res,
+#    lab = rownames(res),
+#    x = 'log2FoldChange',
+#    y = 'pvalue')
+
+```
+
+
+
+
+
+
+
+
+
+
