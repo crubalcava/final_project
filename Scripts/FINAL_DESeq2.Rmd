@@ -1,0 +1,423 @@
+---
+title: "FINAL_DESeq2"
+author: "Crystal Rubalcava"
+date: "12/5/2021"
+---
+
+# A.Load all required libraries
+```{r}
+library(DESeq2)
+library(tidyverse)
+library(pheatmap)
+library(RColorBrewer)
+library(PoiClaClu)
+library(glmpca)
+library(dplyr)
+library(ggplot2)
+library(ggbeeswarm)
+library(apeglm)
+library(genefilter)
+```
+
+## B. Prep Data for DESEQ2
+
+## 1. Created two directories to hold htseq count files for sigmoid tumor origin site (sig) and ascending tumor origin site (asc). Unzip all count files using linux.
+```{bash}
+mkdir ~/final_project/sig
+cd ~/final_project/sigmoid
+cp ~/final_project/sigmoid/*.counts ~/final_project/sig
+gunzip -r ~/final_project/sig
+mkdir ~/final_project/asc
+cd ~/final_project/ascending
+cp ~/final_project/ascending/*.counts ~/final_project/asc
+gunzip -r ~/final_project/asc
+
+```
+# 2. Rename files in in sig and asc files to add the condition to the file name to prep it for the sample table we will create later for the DESEQ analysis
+```{bash}
+cd ~/final_project/sig
+for i in *; do mv "$i" sig_"$i"; done
+```
+
+```{bash}
+cd ~/final_project/asc
+for i in *; do mv "$i" asc_"$i"; done
+```
+
+# 3. Add all renamed count files into one directory - 'allcounts' to prep for analysis 
+```{bash}
+mkdir ~/final_project/allcounts
+cp ~/final_project/asc/*.counts ~/final_project/allcounts
+cp ~/final_project/sig/*.counts ~/final_project/allcounts
+```
+
+# 4. Rename all files for simplicity by removing 
+
+
+
+# 4. Get list of all files in directory
+
+```{r}
+#for sigmoid tumor origin site files
+setwd("~/final_project/sig")
+files = list.files(path="~/final_project/sig", pattern=".counts")
+
+#Merge the first to files and store
+file1 = read.table(files[1], col.names=c("gene_id",files[1]))
+file2 = read.table(files[2], col.names=c("gene_id",files[2]))
+combined.file = merge (file1, file2, by=c("gene_id"))
+
+#For loop to merge contents of remaining files
+for(i in 3:length(files))
+{
+file = read.table(files[i],col.names=c("gene_id",files[i]))
+combined.file <- merge(combined.file, file, by=c("gene_id"))
+}
+write.table(combined.file, file = "htseq_sig.csv", sep = ",", row.names = FALSE)
+```
+
+```{r}
+# for ascending tumor origin site files
+setwd("~/final_project/asc")
+files = list.files(path="~/final_project/asc", pattern=".counts")
+
+#Merge the first to files and store
+file1 = read.table(files[1], col.names=c("gene_id",files[1]))
+file2 = read.table(files[2], col.names=c("gene_id",files[2]))
+combined.file = merge (file1, file2, by=c("gene_id"))
+
+#For loop to merge contents of remaining files
+for(i in 3:length(files))
+{
+file = read.table(files[i],col.names=c("gene_id",files[i]))
+combined.file <- merge(combined.file, file, by=c("gene_id"))
+}
+write.table(combined.file, file = "htseq_asc.csv", sep = ",", row.names = FALSE)
+```
+
+```{r}
+# for ascending tumor origin site files
+setwd("~/final_project/allcounts")
+files = list.files(path="~/final_project/allcounts", pattern=".counts")
+
+#Merge the first to files and store
+file1 = read.table(files[1], col.names=c("gene_id",files[1]))
+file2 = read.table(files[2], col.names=c("gene_id",files[2]))
+combined.file = merge (file1, file2, by=c("gene_id"))
+
+#For loop to merge contents of remaining files
+for(i in 3:length(files))
+{
+file = read.table(files[i],col.names=c("gene_id",files[i]))
+combined.file <- merge(combined.file, file, by=c("gene_id"))
+}
+write.table(combined.file, file = "htseq_all.csv", sep = ",", row.names = FALSE)
+```
+
+# 5. remove rows 2-6 from all files as they are not needed manually
+
+## C. Load Data into DESEQ2
+
+# 1. Using HTSeq counts as input, DESeqDataSetFromHTSeqCount, create sample table for all counts including tumor origin sites in the sigmoid (sig ) and ascending colon(asc).
+```{r}
+directory <- "~/final_project/allcounts"
+sampleFiles <- grep("counts",list.files(directory),value=TRUE)
+#sampleCondition <- sub("^(\\d{3}).*$","\\1",sampleFiles) #if the code below does not work, use this to pull the first 3 letter of the file name to specify the condition
+sampleCondition <- substr(sampleFiles, 0, 3) #first three letters of the file name contain the condition of the sample
+#sampleName <- sub("^(\\d{8}).*$","\\1",sampleFiles) #if the code below does not work, use this to pull the first 8 letter of the file name to specify the condition
+sampleName <- substr(sampleFiles, 4, 8) #first 8 charaters of the file name contain the sample name for simplicity #continued error, cannot simplify sample name, will need to address later
+sampleTable <- data.frame(sampleName = sampleFiles,
+                          fileName = sampleFiles,
+                          condition = sampleCondition)
+sampleTable$condition <- factor(sampleTable$condition)
+```
+
+# 2. Build the sample DESeqDataSet
+```{r}
+directory <- "~/final_project/allcounts"
+
+```
+
+```{r}
+library("DESeq2")
+ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
+                                       directory = directory,
+                                       design= ~ condition)
+ddsHTSeq
+```
+
+
+# 3. Pre-filter low counts in data. In this case we consider low counts to be anything lower than 10 counts per gene. 
+```{r}
+keep <- rowSums(counts(ddsHTSeq)) >= 10
+dds <- ddsHTSeq[keep,]
+```
+
+# 4. Tell the DESeq2 functions which level you want to compare against. In this case, we will compare the tumor origin sites, sigmoid (sig) and ascending (asc) colon sites. The comparisons will be organized based on the alphabetical order of the levels. Here we explicitly explicitly set the factors levels. 
+```{r}
+dds$condition <- factor(dds$condition, levels = c("sig","asc"))
+```
+
+# 5. We will subset the columns of a DESeqDataSet because we removed a few samples that contained less than or equal to 10 counts per gene. To do this, we use the droplevels function to remove those levels stated aboce which do not have samples in the current DESeqDataSet.
+```{r}
+dds$condition <- droplevels(dds$condition)
+```
+
+# D. Differential expression analysis begin using the DESeq function. 
+# 1. The results tables are generated using the function results, which extracts a results table with log2 fold changes, p values and adjusted p values. The text, condition asc vs sig, tells you that the estimates are of the logarithmic fold change log2(asc/sig).
+
+```{r}
+dds <- DESeq(dds)
+res <- results(dds)
+res
+```
+
+# 2. Build the results table from the coefficients
+```{r}
+res <- results(dds, name="condition_asc_vs_sig")
+res <- results(dds, contrast=c("condition","sig","asc"))
+```
+
+# 3. Shrink the LFC estimates so that it is more useful for visualization and ranking of genes. 
+
+```{r}
+resultsNames(dds)
+
+```
+
+```{r}
+resLFC <- lfcShrink(dds, coef="condition_asc_vs_sig", type="apeglm")
+resLFC
+```
+
+# F. p-values and adjusted p-values
+
+# 1. Reorder results table by the smallest p value
+
+```{r}
+resOrdered <- res[order(res$pvalue),]
+```
+
+# 2. Summarize the tallies using the summary function
+
+```{r}
+summary(res)
+
+```
+
+# 3. Find the total number of adjusted p-values that were less than 0.1
+```{r}
+sum(res$padj < 0.1, na.rm=TRUE)
+
+```
+
+
+# 4. The results function contains a number of arguments to customize the results table which is generated. Note that the results function automatically performs independent filtering based on the mean of normalized counts for each gene, optimizing the number of genes which will have an adjusted p value below a given FDR cutoff, alpha. Below, we set alpha to 0.05. This means that if the adjusted p value cutoff will be a value other than 0.1, alpha should be set to that value.
+
+```{r}
+res05 <- results(dds, alpha=0.05)
+summary(res05)
+```
+
+# 5. Find the total number of adjusted p-values that were less than 0.05
+
+```{r}
+sum(res05$padj < 0.05, na.rm=TRUE)
+```
+
+# Optional. Independent hypothesis weighting
+
+```{r}
+# (unevaluated code chunk)
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+ #   install.packages("BiocManager")
+#
+#BiocManager::install("IHW")
+#library("IHW")
+#resIHW <- results(dds, filterFun=ihw)
+#summary(resIHW)
+#sum(resIHW$padj < 0.1, na.rm=TRUE)
+#metadata(resIHW)$ihwResult
+```
+
+# G. Exploring and exporting results through plots and graphs
+
+# 1.  DESeq2, the function plotMA shows the log2 fold changes attributable to a given variable over the mean of normalized counts for all the samples in the DESeqDataSet. Points will be colored red if the adjusted p value is less than 0.1. Points which fall out of the window are plotted as open triangles pointing either up or down.
+```{r}
+plotMA(res, ylim=c(-2,2))
+
+```
+
+# 2. It is more useful visualize the MA-plot for the shrunken log2 fold changes, which remove the noise associated with log2 fold changes from low count genes without requiring arbitrary filtering thresholds.
+
+```{r}
+plotMA(resLFC, ylim=c(-2,2))
+
+```
+
+# Optional. After calling plotMA, one can use the function identify to interactively detect the row number of individual genes by clicking on the plot. One can then recover the gene identifiers by saving the resulting indices:
+
+```{r}
+#idx <- identify(res$baseMean, res$log2FoldChange)
+#rownames(res)[idx]
+```
+
+# 3. Plot counts
+# We examine the counts of reads for a single gene across the groups. The counts are grouped by the variables in intgroup, where more than one variable can be specified. To look at a specific gene to plot, you can call it by rowname. Here we specify the gene which had the smallest p value from the results table created above.
+
+
+```{r}
+plotCounts(dds, gene=which.min(res$padj), intgroup="condition")
+
+```
+
+# Optional: To customize plotting using ggplot2 use the following
+```{r}
+d <- plotCounts(dds, gene=which.min(res$padj), intgroup="condition", 
+                returnData=TRUE)
+library("ggplot2")
+ggplot(d, aes(x=condition, y=count)) + 
+  geom_point(position=position_jitter(w=0.1,h=0)) + 
+  scale_y_log10(breaks=c(25,100,400))
+```
+
+# H. Exporting results to CSV files
+```{r}
+resSig <- subset(resOrdered, padj < 0.1)
+resSig
+write.csv(as.data.frame(resOrdered), 
+          file="condition_sig_results.csv")
+
+```
+
+
+# 1. Data transformations and visualization
+
+```{r}
+vsd <- vst(dds, blind=FALSE)
+head(assay(vsd), 3)
+
+```
+
+# 2. Plot the data from a normal log transformation
+#. The figure below plots the standard deviation of the transformed data, across samples, against the mean, using the shifted logarithm transformation, the regularized log transformation and the variance stabilizing transformation. The shifted logarithm has elevated standard deviation in the lower count range, and the regularized log to a lesser extent, while for the variance stabilized data the standard deviation is roughly constant along the whole dynamic range.
+
+
+```{r}
+# this gives log2(n + 1)
+ntd <- normTransform(dds)
+library("vsn")
+meanSdPlot(assay(ntd))
+```
+
+# 3. Now plot the blind dispersion estimation
+
+```{r}
+meanSdPlot(assay(vsd))
+```
+
+# I. Data quality assessment by sample clustering and visualization
+
+# 1. Remove insufficiently good data - We start by plotting  a heatmap of the count matrix
+
+```{r}
+# This did not work and produced the error ```Error in check.length("fill") : 'gpar' element 'fill' must not be length 0.``` This error was solved with the following code block below. 
+
+# This solution was proposed in the following thread: https://www.biostars.org/p/332532/#332574.
+#library("pheatmap")
+#select <- order(rowMeans(counts(dds,normalized=TRUE)),
+#                decreasing=TRUE)[1:20]
+#df <- as.data.frame(colData(dds)[,c("condition")])
+# pheatmap(assay(ntd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
+#        cluster_cols=FALSE, annotation_col=df)
+```
+
+
+```{r}
+library("pheatmap")
+select <- order(rowMeans(counts(dds,normalized=TRUE)),
+                decreasing=TRUE)[1:20]
+cdata <- colData(dds)
+pheatmap(assay(ntd),
+    cluster_rows = FALSE,
+    show_rownames = FALSE,
+    cluster_cols = FALSE,
+    annotation_col = as.data.frame(cdata[,"condition"], row.names=rownames(cdata)))
+
+```
+
+
+```{r}
+pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
+         cluster_cols=FALSE, annotation_col = as.data.frame(cdata[,"condition"], row.names=rownames(cdata)))
+```
+
+
+# 2. Heatmap of the sample-to-sample distances
+
+```{r}
+sampleDists <- dist(t(assay(vsd)))
+
+```
+
+```{r}
+library("RColorBrewer")
+sampleDistMatrix <- as.matrix(sampleDists)
+rownames(sampleDistMatrix) <- paste(vsd$condition, sep="-")
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows=sampleDists,
+         clustering_distance_cols=sampleDists,
+         col=colors)
+```
+
+# 3. Principal component plot of the samples
+# Use a PCA plot to visualize the overall effect of experimental covariates and batch effects.
+
+```{r}
+colData(dds)
+pcaData = plotPCA(vsd,intgroup=c("condition"),returnData=TRUE)
+pcaData
+percentVar = round(100 * attr(pcaData, "percentVar"))
+```
+
+```{r}
+ggplot(pcaData, aes(x=PC1,y=PC2,color=condition)) +
+  geom_point(size=2) +
+  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+  ggtitle("PCA - Sig vs. Asc Tumor Origin Site Condition")
+```
+
+
+# J. Variations to the standard workflow - Wald test individual steps
+```{r}
+dds <- estimateSizeFactors(dds)
+dds <- estimateDispersions(dds)
+dds <- nbinomWaldTest(dds)
+```
+
+# 1. Likelihood ratio test (LRT) -  determines if the increased likelihood of the data using the extra terms in the full model is more than expected if those extra terms are truly zero.
+
+```{r}
+dds <- DESeq(dds, test="LRT", reduced=~1)
+res <- results(dds)
+
+```
+
+
+```{r}
+resApeT <- lfcShrink(dds, coef=2, type="apeglm", lfcThreshold=1)
+plotMA(resApeT, ylim=c(-3,3), cex=.8)
+abline(h=c(-1,1), col="dodgerblue", lwd=2)
+```
+
+# K. Generate final summary results table
+```{r}
+res = results(dds)
+summary(res)
+
+```
+
+
