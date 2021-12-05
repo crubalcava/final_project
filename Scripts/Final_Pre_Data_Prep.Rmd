@@ -35,10 +35,6 @@ cp ~/final_project/asc/*.counts ~/final_project/allcounts
 cp ~/final_project/sig/*.counts ~/final_project/allcounts
 ```
 
-# 4. Rename all files for simplicity by removing 
-
-
-
 # 4. Get list of all files in directory
 
 ```{r}
@@ -99,20 +95,27 @@ write.table(combined.file, file = "htseq_all.csv", sep = ",", row.names = FALSE)
 ```
 
 # 5. remove rows 2-6 from all files as they are not needed manually
+# 6. Rename file names by editting long file names manually
+# 7. Use excel vlookup function to add gender assignment to file name for simplicity of building the data frame when loading the data into DESeq2. This was done by using clinical.csv data from both the sigmoid and ascending data pulls from the GCD portal. All needed files can be found in the google drive folder. 
 
 ## B. Load Data into DESEQ2
 
 # 1. Using HTSeq counts as input, DESeqDataSetFromHTSeqCount, create sample table for all counts including tumor origin sites in the sigmoid (sig ) and ascending colon(asc).
+# May need to rename files names manually for simplicity 
+
 ```{r}
-directory <- "~/final_project/allcounts"
+library("stringr")
+directory <- "~/final_project/allcounts/"
 sampleFiles <- grep("counts",list.files(directory),value=TRUE)
 #sampleCondition <- sub("^(\\d{3}).*$","\\1",sampleFiles) #if the code below does not work, use this to pull the first 3 letter of the file name to specify the condition
 sampleCondition <- substr(sampleFiles, 0, 3) #first three letters of the file name contain the condition of the sample
 #sampleName <- sub("^(\\d{8}).*$","\\1",sampleFiles) #if the code below does not work, use this to pull the first 8 letter of the file name to specify the condition
-sampleName <- substr(sampleFiles, 4, 8) #first 8 charaters of the file name contain the sample name for simplicity #continued error, cannot simplify sample name, will need to address later
+sampleName <- substr(sampleFiles, 0, 5) # file name is the condition and number related to the file
+sampleGender <- str_sub(sampleFiles, - 1, - 1) #last character of the file contains gender file sample
 sampleTable <- data.frame(sampleName = sampleFiles,
                           fileName = sampleFiles,
-                          condition = sampleCondition)
+                          condition = sampleCondition,
+                          gender = sampleGender)
 sampleTable$condition <- factor(sampleTable$condition)
 ```
 
