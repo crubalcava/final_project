@@ -1,0 +1,36 @@
+---
+title: "ENS to HUGO ID"
+output: html_notebook
+---
+
+Convert ENS ID to HUGO ID from sampleTableusing 
+
+```{r}
+# Install the package if you have not installed by running this command: 
+BiocManager::install("EnsDb.Hsapiens.v79")
+
+library(EnsDb.Hsapiens.v79)
+
+```
+
+```{r}
+# 1. Convert from ensembl.gene to gene.symbol
+df <- read.csv(file = 'htseq_all.csv',stringsAsFactors = TRUE)
+v1 <- df[[1]]  # by column number
+
+ensembl.genes <- c(str_extract(v1))
+
+HUGOID <- ensembldb::select(EnsDb.Hsapiens.v79, keys= ensembl.genes, keytype = "GENEID", columns = c("SYMBOL","GENEID"))
+head(HUGOID)
+```
+
+
+
+```{r}
+library('biomaRt')
+mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
+genes <- df$genes
+combined.file <- getBM(filters= "gene_id", attributes= c("gene_id"),values=genes,mart= mart)
+head(combined.file)
+```
+
