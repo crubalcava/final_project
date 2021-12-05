@@ -1,0 +1,119 @@
+---
+title: "Data Prep for DESeq2"
+output: html_notebook
+---
+
+## A. Prep Data for DESEQ2
+
+## 1. Created two directories to hold htseq count files for sigmoid tumor origin site (sig) and ascending tumor origin site (asc). Unzip all count files using linux.
+```{bash}
+mkdir ~/final_project/sig
+cd ~/final_project/sigmoid
+cp ~/final_project/sigmoid/*.counts ~/final_project/sig
+gunzip -r ~/final_project/sig
+mkdir ~/final_project/asc
+cd ~/final_project/ascending
+cp ~/final_project/ascending/*.counts ~/final_project/asc
+gunzip -r ~/final_project/asc
+
+```
+# 2. Rename files in in sig and asc files to add the condition to the file name to prep it for the sample table we will create later for the DESEQ analysis
+```{bash}
+cd ~/final_project/sig
+for i in *; do mv "$i" sig_"$i"; done
+```
+
+```{bash}
+cd ~/final_project/asc
+for i in *; do mv "$i" asc_"$i"; done
+```
+
+# 3. Add all renamed count files into one directory - 'allcounts' to prep for analysis 
+```{bash}
+mkdir ~/final_project/allcounts
+cp ~/final_project/asc/*.counts ~/final_project/allcounts
+cp ~/final_project/sig/*.counts ~/final_project/allcounts
+```
+
+# 4. Rename all files for simplicity by removing 
+
+
+
+# 4. Get list of all files in directory
+
+```{r}
+#for sigmoid tumor origin site files
+setwd("~/final_project/sig")
+files = list.files(path="~/final_project/sig", pattern=".counts")
+
+#Merge the first to files and store
+file1 = read.table(files[1], col.names=c("gene_id",files[1]))
+file2 = read.table(files[2], col.names=c("gene_id",files[2]))
+combined.file = merge (file1, file2, by=c("gene_id"))
+
+#For loop to merge contents of remaining files
+for(i in 3:length(files))
+{
+file = read.table(files[i],col.names=c("gene_id",files[i]))
+combined.file <- merge(combined.file, file, by=c("gene_id"))
+}
+write.table(combined.file, file = "htseq_sig.csv", sep = ",", row.names = FALSE)
+```
+
+```{r}
+# for ascending tumor origin site files
+setwd("~/final_project/asc")
+files = list.files(path="~/final_project/asc", pattern=".counts")
+
+#Merge the first to files and store
+file1 = read.table(files[1], col.names=c("gene_id",files[1]))
+file2 = read.table(files[2], col.names=c("gene_id",files[2]))
+combined.file = merge (file1, file2, by=c("gene_id"))
+
+#For loop to merge contents of remaining files
+for(i in 3:length(files))
+{
+file = read.table(files[i],col.names=c("gene_id",files[i]))
+combined.file <- merge(combined.file, file, by=c("gene_id"))
+}
+write.table(combined.file, file = "htseq_asc.csv", sep = ",", row.names = FALSE)
+```
+
+```{r}
+# for ascending tumor origin site files
+setwd("~/final_project/allcounts")
+files = list.files(path="~/final_project/allcounts", pattern=".counts")
+
+#Merge the first to files and store
+file1 = read.table(files[1], col.names=c("gene_id",files[1]))
+file2 = read.table(files[2], col.names=c("gene_id",files[2]))
+combined.file = merge (file1, file2, by=c("gene_id"))
+
+#For loop to merge contents of remaining files
+for(i in 3:length(files))
+{
+file = read.table(files[i],col.names=c("gene_id",files[i]))
+combined.file <- merge(combined.file, file, by=c("gene_id"))
+}
+write.table(combined.file, file = "htseq_all.csv", sep = ",", row.names = FALSE)
+```
+
+# 5. remove rows 2-6 from all files as they are not needed manually
+
+## B. Load Data into DESEQ2
+
+# 1. Using HTSeq counts as input, DESeqDataSetFromHTSeqCount, create sample table for all counts including tumor origin sites in the sigmoid (sig ) and ascending colon(asc).
+```{r}
+directory <- "~/final_project/allcounts"
+sampleFiles <- grep("counts",list.files(directory),value=TRUE)
+#sampleCondition <- sub("^(\\d{3}).*$","\\1",sampleFiles) #if the code below does not work, use this to pull the first 3 letter of the file name to specify the condition
+sampleCondition <- substr(sampleFiles, 0, 3) #first three letters of the file name contain the condition of the sample
+#sampleName <- sub("^(\\d{8}).*$","\\1",sampleFiles) #if the code below does not work, use this to pull the first 8 letter of the file name to specify the condition
+sampleName <- substr(sampleFiles, 4, 8) #first 8 charaters of the file name contain the sample name for simplicity #continued error, cannot simplify sample name, will need to address later
+sampleTable <- data.frame(sampleName = sampleFiles,
+                          fileName = sampleFiles,
+                          condition = sampleCondition)
+sampleTable$condition <- factor(sampleTable$condition)
+```
+
+
