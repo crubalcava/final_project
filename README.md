@@ -19,7 +19,7 @@ We will use the clinical data from [portal.gdc.cancer.gov/repository](https://po
 
 Enter the following data into the GDC portal
 
-![](Screenshots/Screen Shot 2021-12-01 at 9.59.02 PM.png)
+![](Screenshots/Screen%20Shot%202021-12-01%20at%209.59.02%20PM.png)
 
 
 
