@@ -46,12 +46,12 @@ The R Script for DESeq2 Analysis can be found here: [Final Project DESeq2 Vignet
 
 ```{r}
 library("stringr")
-directory <- "~/final_project/allcounts/"
-sampleFiles <- grep("counts",list.files(directory),value=TRUE)
+directory <- "~/path-to-files/"
+sampleFiles <- grep("counts",list.files(directory),value=TRUE) 
 #sampleCondition <- sub("^(\\d{3}).*$","\\1",sampleFiles) #if the code below does not work, use this to pull the first 3 letter of the file name to specify the condition
 sampleCondition <- substr(sampleFiles, 0, 3) #first three letters of the file name contain the condition of the sample
 sampleName <- substr(sampleFiles, 0, 5) #file name is the condition and number related to the file
-sampleGender <- str_sub(sampleFiles, - 1, - 1) #last character of the file contains gender file sample
+sampleGender<- str_sub(sampleFiles, - 1, - 1) #last character of the file contains gender file sample
 sampleTable <- data.frame(sampleName = sampleFiles,
                           fileName = sampleFiles,
                           condition = sampleCondition,
@@ -59,12 +59,13 @@ sampleTable <- data.frame(sampleName = sampleFiles,
 sampleTable$condition <- factor(sampleTable$condition)
 ```
 * When you grep your sample files, use a common factor across all files, for this example we used ```counts```
+* Condition here refers to the factor - tumor origin site for this specific example. There are two sites of interest - sigmoid (sig) and ascending (asc) colon tumor origin sites. 
 
 ![](Screenshots/sampleTable.png)
 
 #### B. Build DESeqDataSet
 ```
-directory <- "~/final_project/allcounts"
+directory <- "~/path-to-files"
 library("DESeq2")
 ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
                                        directory = directory,
