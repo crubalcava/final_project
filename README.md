@@ -18,21 +18,25 @@ For this analysis, we'll use the TCGA cohort and have identified 85 ht-seq count
 We will use the clinical data from [portal.gdc.cancer.gov/repository](https://portal.gdc.cancer.gov/repository.) From the data available for colon adenocarcinomas are in ```htseq.count``` files. There are 85 tumor samples where 36 had tumor origin sites in the ascending colon and 33 had cases in sigmoid colon.
 
 Enter the following data into the GDC portal
+
 ![](Screenshots/Screen Shot 2021-12-01 at 9.59.02 PM.png)
+
 
 
 #### Prepare the data for use in the DESeq Vignette 
 
-* For the analysis of the data for stage II colon cancer patients, you can find the prepped data file here: < ADD CSV FILE TO A GOOGLE DRIVE AND SHARE THE LINK HERE>
-* To learn how this data was prepped for use you can follow the steps shared in the following linux script:  < ADD LINK TO THE SCRIPTS FOR FILE ORGANIZING USING LINUX>
-	* Skip to <add link to Known Issues> to learn about the known issues for using this approach.
+* For the analysis of the data for stage II colon cancer patients:
+	* Files used for this analysis can be found here: [finalproject.tar.gz](https://drive.google.com/drive/folders/1TYzZrFkgwyp2r3GOr7_u4AY5waxfGLsZ?usp=sharing). Usage of this data is ```tar -xvzf finalproject.tar.gz```.
+* To learn how this data was prepped for use you can follow the steps shared in the following linux script: 
+	* Scripts: [Pre-Data_Prep](https://github.com/crubalcava/final_project/blob/main/Scripts/Final_Pre_Data_Prep.Rmd)
+	* Skip to [Known Issues](https://github.com/crubalcava/final_project#known-issues) to learn about the known issues for using this approach.
 
 
 ## RNA-seq Data Analysis using DESeq2
 
-Go to <link to DESeq2 Analysis> follow the reference DESeq2 vignette
+To reference the full vignette, use [DESeq2](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html). 
 
-The R Script for DESeq2 Analysis can be found here: <ADD HTML LINK FOR YOUR VIGNETTE>
+The R Script for DESeq2 Analysis can be found here: [Final Project DESeq2 Vignette](file:///Users/crystalrubalcava/final_project/FinalProjectDESeq2_TRGN510.nb.html)
 
 ### Differential Gene Expression Analysis
 
@@ -447,6 +451,6 @@ Although we did not see any major differences in gene expression with comparing 
 * When creating the sample table, I used ```substr(sampleFiles, 0, 3)``` to pull the condition from the first three letters of the file name. I attempted to use ```sub("^(\\d{3}).*$","\\1",sampleFiles)``` but was this created an error. 
 
 ### Tumor origin site analysis
-* There wasn't enough factors to test against the tumor origin site so I cannot confidently come to any conclusions from the gene analysis of this factor. I attempted to check the compare the progression of stage ii colon cancer (ii, iia, iib, iic) however this data was not available for all cases. Instead, I opted for gender factor, M vs F to analyze with tumor origin site (seen as condition in the script). 
+* There wasn't enough factors to test against the tumor origin site so I cannot confidently come to any conclusions from the gene analysis of this factor. I attempted to check the compare the progression of stage ii colon cancer (ii, iia, iib, iic) however this data was not available for all cases. Instead, I opted for gender factor, M vs F to check for variance along with tumor origin site (seen as condition in the script). 
 
 
