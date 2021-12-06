@@ -36,7 +36,7 @@ Enter the following data into the GDC portal
 
 To reference the full vignette, use [DESeq2](http://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html). 
 
-The R Script for DESeq2 Analysis can be found here: [Final Project DESeq2 Vignette](file:///Users/crystalrubalcava/final_project/FinalProjectDESeq2_TRGN510.nb.html)
+The R Script for DESeq2 Analysis can be found here: [Final Project DESeq2 Vignette](https://github.com/crubalcava/final_project/blob/main/Scripts/FinalProjectDESeq2_TRGN510.nb.html)
 
 ### Differential Gene Expression Analysis
 
