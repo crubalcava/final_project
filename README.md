@@ -56,7 +56,7 @@ sampleTable$condition <- factor(sampleTable$condition)
 ```
 * When you grep your sample files, use a common factor across all files, for this example we used ```counts```
 
-sampleTable LINK
+![](Screenshots/sampleTable.png)
 
 #### B. Build DESeqDataSet
 ```
@@ -67,6 +67,9 @@ ddsHTSeq <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
                                        design= ~ condition)
 ddsHTSeq
 ```
+![](Screenshots/ddsHTSeq.png)
+
+
 1) Pre-filter low counts in data. In this case we consider low counts to be anything lower than 10 counts per gene. 
 
 ```
@@ -94,6 +97,8 @@ dds <- DESeq(dds)
 res <- results(dds)
 res
 ```
+![](Screenshots/intercept.png)
+
 
 2)  Build the results table from the coefficients
 
@@ -101,6 +106,7 @@ res
 res <- results(dds, name="condition_asc_vs_sig")
 res <- results(dds, contrast=c("condition","sig","asc"))
 ```
+![](Screenshots/res_LFC_shrinkage_gen.png)
 
 3) Shrink the LFC estimates so that it is more useful for visualization and ranking of genes.
 
@@ -109,6 +115,9 @@ resultsNames(dds)
 resLFC <- lfcShrink(dds, coef="condition_asc_vs_sig", type="apeglm")
 resLFC
 ```
+
+![](Screenshots/res_LFC_shrinkage.png)
+
 
 #### D. p-Values and adjusted p-Values
 The results function contains a number of arguments to customize the results table which is generated. Note that the results function automatically performs independent filtering based on the mean of normalized counts for each gene, optimizing the number of genes which will have an adjusted p value below a given FDR cutoff, alpha. 
@@ -119,23 +128,34 @@ The results function contains a number of arguments to customize the results tab
 resOrdered <- res[order(res$pvalue),]
 summary(res)
 ```
+![](Screenshots/res_0.05.png)
+
+
 2) Find the total number of adjusted p-values that were less than 0.1
 
 ```
 sum(res$padj < 0.1, na.rm=TRUE)
 ```
+![](Screenshots/pvalue_0.1.png)
+
+
 3) Below, we set alpha to 0.05. This means that if the adjusted p value cutoff will be a value other than 0.1, alpha should be set to that value.
 
 ```{r}
 res05 <- results(dds, alpha=0.05)
 summary(res05)
 ```
+![](Screenshots/res_0.05.png)
+
 
 4) Find the total number of adjusted p-values that were less than 0.05
 
 ```{r}
 sum(res05$padj < 0.05, na.rm=TRUE)
 ```
+
+![](Screenshots/pvalue_0.05.png)
+
 
 #### E.  Exploring and exporting results through plots and graphs
 
@@ -145,6 +165,8 @@ sum(res05$padj < 0.05, na.rm=TRUE)
 plotMA(res, ylim=c(-2,2))
 
 ```
+![](Screenshots/plotMA_res.png)
+
 
 2) It is more useful visualize the MA-plot for the shrunken log2 fold changes, which remove the noise associated with log2 fold changes from low count genes without requiring arbitrary filtering thresholds.
 
@@ -152,6 +174,9 @@ plotMA(res, ylim=c(-2,2))
 plotMA(resLFC, ylim=c(-2,2))
 
 ```
+![](Screenshots/plotMA_LFC.png)
+
+
 3) Alternative shrinkage estimators
 The shrunken log fold changes are useful for ranking and visualization, without the need for arbitrary filters on low count genes. 
 
@@ -163,7 +188,7 @@ The shrunken log fold changes are useful for ranking and visualization, without 
 
 	* ```normal``` is the the original DESeq2 shrinkage estimator, an adaptive Normal distribution as prior.
 
-<LINK> 
+![](Screenshots/alternateshrink.png)
 
 
 #### F. Plot counts
@@ -174,8 +199,11 @@ The shrunken log fold changes are useful for ranking and visualization, without 
 plotCounts(dds, gene=which.min(res$padj), intgroup="condition")
 
 ```
-2) 
-3) Exporting results to CSV files
+
+![](Screenshots/plotcounts.png)
+
+
+2) Exporting results to CSV files
 
 ```{r}
 resSig <- subset(resOrdered, padj < 0.1)
@@ -184,6 +212,9 @@ write.csv(as.data.frame(resOrdered),
           file="condition_sig_results.csv")
 
 ```
+![](Screenshots/results_Sig.png)
+
+
 
 #### G. Multi-factor Design
 1) Using two factors to analyze: tumor origin site(condition) and gender
@@ -199,6 +230,9 @@ ddsMF <- dds
 # There are only two levels in each factor so there is no need to edit the levels. If more simplicity is needed, go to DESeq vignette for more information on how to edit the levels. 
 ```
 
+![](Screenshots/multifactordesign_data.png)
+
+
 ```{r}
 design(ddsMF) <- formula(~ condition + gender)
 ddsMF <- DESeq(ddsMF)
@@ -206,11 +240,17 @@ resMF <- results(ddsMF)
 head(resMF)
 ```
 
+![](Screenshots/results_MF1.png)
+
+
 ```{r}
 resMFCondition <- results(ddsMF,
                      contrast=c("condition", "asc", "sig"))
 head(resMFType)
 ```
+
+![](Screenshots/results_MF.png)
+
 
 #### H. Data transformations and visualization
 
@@ -221,11 +261,17 @@ vsd <- vst(dds, blind=FALSE)
 head(assay(vsd), 3)
 ```
 
+![](Screenshots/vsd_dataassay.png)
+
+
 2) Plot the blind dispersion estimation
 
 ```{r}
 meanSdPlot(assay(vsd))
 ```
+
+![](Screenshots/meanplot_vsd.png)
+
 
 3) Plot the data from a normal log transformation. 
 
@@ -237,6 +283,9 @@ ntd <- normTransform(dds)
 library("vsn")
 meanSdPlot(assay(ntd))
 ```
+
+![](Screenshots/meanplot_ntd.png)
+
 
 #### I.  Data quality assessment by sample clustering and visualization
 
@@ -250,10 +299,17 @@ df <- as.data.frame(colData(dds)[,c("condition","gender")])
 pheatmap(assay(ntd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
 ```
+
+![](Screenshots/heatmap_ntd.png)
+
+
 ```{r}
 pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
          cluster_cols=FALSE, annotation_col=df)
 ```
+
+![](Screenshots/heatmap_vsd.png)
+
 
 2) Heatmap of the sample-to-sample distances
 
@@ -274,6 +330,9 @@ pheatmap(sampleDistMatrix,
          col=colors)
 ```
 
+![](Screenshots/heatmap_matrix.png)
+
+
 3) Principal component plot of the samples
 
 * Use a PCA plot to visualize the overall effect of experimental covariates and batch effects.
@@ -281,6 +340,10 @@ pheatmap(sampleDistMatrix,
 ```{r}
 plotPCA(vsd, intgroup=c("condition", "gender"))
 ```
+
+![](Screenshots/PCAplot.png)
+
+
 * Use ggplot2 to format the plot for simplified reads
 
 ```{r}
@@ -293,6 +356,9 @@ ggplot(pcaData, aes(PC1, PC2, color=condition, shape=gender)) +
   coord_fixed()
 ```
 
+![](Screenshots/PCAplot_ggplot.png)
+
+
 #### J. Variations to the standard workflow 
 
 1) Wald test individual steps
@@ -302,6 +368,7 @@ dds <- estimateSizeFactors(dds)
 dds <- estimateDispersions(dds)
 dds <- nbinomWaldTest(dds)
 ```
+
 2) Likelihood ratio test (LRT) -  determines if the increased likelihood of the data using the extra terms in the full model is more than expected if those extra terms are truly zero.
 
 ```{r}
@@ -315,6 +382,9 @@ plotMA(resApeT, ylim=c(-3,3), cex=.8)
 abline(h=c(-1,1), col="dodgerblue", lwd=2)
 ```
 
+![](Screenshots/maplot_LRT.png)
+
+
 #### K. Single Cell Analysis
 
 * While the negative binomial is versatile in having a mean and dispersion parameter, extreme counts in individual samples might not fit well to the negative binomial. For this reason, we perform automatic detection of count outliers. We use Cook’s distance, which is a measure of how much the fitted coefficients would change if an individual sample were removed (Cook 1977).
@@ -326,6 +396,9 @@ par(mar=c(8,5,2,2))
 boxplot(log10(assays(dds)[["cooks"]]), range=0, las=2)
 head(boxplot())
 ```
+
+![](Screenshots/singlecell_boxplot.png)
+
 ```{r}
 W <- res$stat
 maxCooks <- apply(assays(dds)[["cooks"]],1,max)
@@ -337,6 +410,27 @@ m <- ncol(dds)
 p <- 3
 abline(h=qf(.99, p, m - p))
 ```
+![](Screenshots/singlecell_plot.png)
+
+```{r}
+plot(res$baseMean+1, -log10(res$pvalue),
+     log="x", xlab="normalized counts mean",
+     ylab=expression(-log[10](pvalue)),
+     ylim=c(0,30),
+     cex=.4, col=rgb(0,0,0,.3))
+```
+![](Screenshots/norm_mean_count.png)
+
+## Conclusions
+
+We begin the RNA-seq analysis by assessing the oveall similarity between the 85 stage II colon cancer tumor samples. Based on the Principal Component Analysis (PCA) plots and heiarchial clustering methods. We use PCA to identify any variation and highlight patterns in a dataset. For this analysis, the main factor of interest is the condition - tumor origin sites. There are two tumor origin sites in this analysis - ascending colon and sigmoid colon. When visualizing samples in the PCA plot, we see that the samples start to show some separation by tumor origin sites on PC1. To see if we can identify any variation along PC2, we look at the variation due to sex. This additional factor does not provide any identifiable variation in samples based on sex. There seems to be a group of outliers that does not provide any significant difference between the two groups  While there is some overlap, overall there seems to be some significant differentially expressed genes between individuals who had tumor origin sites in their sigmoid and ascending colons for stage II colon cancer. Further analysis and information would be needed to confirm this statement.An interesting approach for further analysis would be looking at body mass index (BMI) or co-morbidities (i.e. obesity). 
+
+HULC (Highly Up-regulated in Liver Cancer) is the most signigicant differentially expresssed gene between ascending and sigmoid colon tumor origin sites. This is interesting because this specific gene was first identified in hepatocelluar caccinomas (liver cancer) and has been found in colorectal cancer patients that have metastasise in the liver. Therefore, a potential factor that may be of interest may also be metastatic tumor sites after initial origin site detection. My guess is that the HULC gene varies among the ascending and sigmoid colon tumor sites based on the anatomical fucntion regarding the liver's portal circulation. The sigmoid colon tumors are closer to the rectum (left-sided) and the ascending colon tumors are closer to the cecum (right-sided). See image below for reference. Therefore, it is most likely that tumors originating in the ascending colon have a higher expression of the HULC gene. 
+
+![](https://img.webmd.com/dtmcms/live/webmd/consumer_assets/site_images/articles/image_article_collections/anatomy_pages/colon.jpg
+)
+
+Although we did not see any major differences in gene expression with comparing tumor origin sites of stage II colon cancer patients, the use of the DESeq2 vignette is useful to conduct differential analysis on RNA-Seq data to explore biological explanations for differences found in patients with similar cancer diagnosis.
 
 
 ## Known Issues
